@@ -14,6 +14,7 @@ shared_scripts {
 
 -- Client-side protection
 client_scripts {
+    'client/safe_init.lua',
     'client/compat_fixes.lua',
     'client/anticheat/*.lua',
     'client/protection/*.lua',

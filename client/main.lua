@@ -279,13 +279,46 @@ end)
 RegisterCommand('test_nui', function()
     if Config.Protection.AntiCheat.NUIDevToolsDetection then
         print("^3[Protector] Testing NUI connection...^7")
+        
+        -- Make sure NUI is visible and responsive
+        SetNuiFocus(false, false)
+        
         SendNUIMessage({
             type = "test_connection",
             message = "Manual NUI test command"
         })
+        
+        -- Give it a moment then check for response
+        CreateThread(function()
+            Wait(2000)
+            print("^3[Protector] If you didn't see a success message, NUI may not be working^7")
+        end)
     else
         print("^1[Protector] NUI DevTools detection is disabled^7")
     end
+end, false)
+
+-- Command to show/hide NUI (for testing)
+RegisterCommand('show_nui', function()
+    if Config.Protection.AntiCheat.NUIDevToolsDetection then
+        SetNuiFocus(true, true)
+        SendNUIMessage({
+            type = "enable_debug"
+        })
+        print("^2[Protector] NUI debug mode enabled and visible^7")
+        print("^3[Protector] Press ESC to close^7")
+    else
+        print("^1[Protector] NUI DevTools detection is disabled^7")
+    end
+end, false)
+
+-- Command to hide NUI
+RegisterCommand('hide_nui', function()
+    SetNuiFocus(false, false)
+    SendNUIMessage({
+        type = "disable_debug"
+    })
+    print("^2[Protector] NUI hidden^7")
 end, false)
 
 -- Command to check DevTools status

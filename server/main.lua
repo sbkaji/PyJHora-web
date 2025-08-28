@@ -240,14 +240,50 @@ RegisterCommand('protector', function(source, args, rawCommand)
         else
             print("File scanner is disabled")
         end
+    elseif subcommand == "webhook" then
+        testWebhookCommand()
     else
         print("FiveM Server Protector Commands:")
         print("  /protector status  - Show system status")
         print("  /protector stats   - Show protection statistics")
         print("  /protector reload  - Reload configuration")
         print("  /protector scan    - Start file scan")
+        print("  /protector webhook - Test webhook")
     end
 end, true)
+
+-- Test webhook function
+function testWebhookCommand()
+    print("=== Testing Webhook ===")
+    
+    if not Config.Webhook.Enabled then
+        print("^1❌ Webhook is DISABLED in config^7")
+        print("^3Set Config.Webhook.Enabled = true^7")
+        return
+    end
+    
+    if not Config.Webhook.URL or Config.Webhook.URL == "" then
+        print("^1❌ Webhook URL is NOT SET^7")
+        print("^3Set Config.Webhook.URL = 'your_discord_webhook_url'^7")
+        return
+    end
+    
+    print("^2✓ Webhook enabled^7")
+    print("^2✓ Webhook URL set^7")
+    print("^3Sending test message...^7")
+    
+    TriggerEvent('protector:webhook:send', {
+        type = 'detection',
+        player = 'TestPlayer',
+        playerId = 999,
+        detection = 'webhook_test',
+        details = {message = 'This is a test webhook from FiveM Protector'},
+        timestamp = os.time()
+    })
+    
+    print("^2✓ Test webhook sent^7")
+    print("^3Check your Discord channel for the message^7")
+end
 
 -- Show system status
 function showSystemStatus(source)
