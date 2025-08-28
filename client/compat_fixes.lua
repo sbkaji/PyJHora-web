@@ -50,6 +50,46 @@ CreateThread(function()
         end
     end
     
+    if not IsEntityTouchingGround then
+        table.insert(missingFunctions, "IsEntityTouchingGround")
+        IsEntityTouchingGround = function(entity)
+            -- Fallback: assume entity is on ground
+            return true
+        end
+    end
+    
+    if not GetEntityInvincible then
+        table.insert(missingFunctions, "GetEntityInvincible")
+        GetEntityInvincible = function(entity)
+            -- Fallback: always return false
+            return false
+        end
+    end
+    
+    if not GetPlayerStamina then
+        table.insert(missingFunctions, "GetPlayerStamina")
+        GetPlayerStamina = function(playerId)
+            -- Fallback: return normal stamina level
+            return 100.0
+        end
+    end
+    
+    if not IsEntityVisible then
+        table.insert(missingFunctions, "IsEntityVisible")
+        IsEntityVisible = function(entity)
+            -- Fallback: assume entity is visible
+            return true
+        end
+    end
+    
+    if not GetEntityAlpha then
+        table.insert(missingFunctions, "GetEntityAlpha")
+        GetEntityAlpha = function(entity)
+            -- Fallback: return full opacity
+            return 255
+        end
+    end
+    
     -- Log missing functions
     if #missingFunctions > 0 then
         print(string.format("^3[Protector] Warning: %d functions not available in this FiveM build^7", #missingFunctions))

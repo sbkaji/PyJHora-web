@@ -26,14 +26,15 @@ This guide covers common issues and their solutions when installing and running 
 
 ### Error: Functions not available
 **Common Missing Functions**:
-- `IsEntityInvincible`
+- `IsEntityInvincible` / `GetEntityInvincible`
+- `IsEntityTouchingGround`
 - `NetworkIsInSpectatorMode` 
-- `GetUsingnightvision`
-- `GetUsingseethrough`
-- `SetNightvision`
-- `SetSeethrough`
+- `GetUsingnightvision` / `GetUsingseethrough`
+- `SetNightvision` / `SetSeethrough`
+- `GetPlayerStamina`
+- `IsEntityVisible` / `GetEntityAlpha`
 
-**Status**: ✅ **FIXED** - Added compatibility layer
+**Status**: ✅ **FIXED** - Added comprehensive compatibility layer
 
 ## 🛠️ Quick Fixes Applied
 

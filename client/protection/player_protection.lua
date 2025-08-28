@@ -51,6 +51,11 @@ local function detectGodmode()
                 isInvincible = GetPlayerInvincible(PlayerId())
             end
             
+            -- Additional check with GetEntityInvincible (if available)
+            if GetEntityInvincible and not isInvincible then
+                isInvincible = GetEntityInvincible(playerPed)
+            end
+            
             -- Check for invincibility flags
             if isInvincible then
                 protectionFlags.godmode = (protectionFlags.godmode or 0) + 1
@@ -194,7 +199,12 @@ local function detectSuperJump()
             
             local playerPed = PlayerPedId()
             local velocity = GetEntityVelocity(playerPed)
-            local isOnGround = IsEntityTouchingGround(playerPed)
+            local isOnGround = true
+            
+            -- Safe call to IsEntityTouchingGround
+            if IsEntityTouchingGround then
+                isOnGround = IsEntityTouchingGround(playerPed)
+            end
             
             -- Check for abnormal upward velocity
             if velocity.z > 10.0 and not isOnGround then
@@ -228,8 +238,17 @@ local function detectInvisible()
             end
             
             local playerPed = PlayerPedId()
-            local alpha = GetEntityAlpha(playerPed)
-            local isVisible = IsEntityVisible(playerPed)
+            local alpha = 255
+            local isVisible = true
+            
+            -- Safe calls to visibility functions
+            if GetEntityAlpha then
+                alpha = GetEntityAlpha(playerPed)
+            end
+            
+            if IsEntityVisible then
+                isVisible = IsEntityVisible(playerPed)
+            end
             
             if alpha < 100 or not isVisible then
                 protectionFlags.invisible = (protectionFlags.invisible or 0) + 1
@@ -263,8 +282,13 @@ local function detectNoclip()
             
             local playerPed = PlayerPedId()
             local playerCoords = GetEntityCoords(playerPed)
-            local isOnGround = IsEntityTouchingGround(playerPed)
             local velocity = GetEntityVelocity(playerPed)
+            local isOnGround = true
+            
+            -- Safe call to IsEntityTouchingGround
+            if IsEntityTouchingGround then
+                isOnGround = IsEntityTouchingGround(playerPed)
+            end
             
             -- Check if player is moving through solid objects
             if not isOnGround and velocity.z == 0.0 and (velocity.x ~= 0.0 or velocity.y ~= 0.0) then
@@ -309,8 +333,13 @@ local function detectStaminaHack()
             end
             
             local playerPed = PlayerPedId()
-            local currentStamina = GetPlayerStamina(PlayerId())
+            local currentStamina = 100.0
             local isRunning = IsPedRunning(playerPed) or IsPedSprinting(playerPed)
+            
+            -- Safe call to GetPlayerStamina
+            if GetPlayerStamina then
+                currentStamina = GetPlayerStamina(PlayerId())
+            end
             
             -- Check for infinite stamina
             if Config.Protection.PlayerProtection.AntiInfiniteStamina and isRunning then

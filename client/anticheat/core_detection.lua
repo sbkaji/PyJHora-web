@@ -166,6 +166,11 @@ local function detectGlobalCheats()
                 isInvincible = GetPlayerInvincible(PlayerId())
             end
             
+            -- Additional check with GetEntityInvincible (if available)
+            if GetEntityInvincible and not isInvincible then
+                isInvincible = GetEntityInvincible(playerPed)
+            end
+            
             if isInvincible then
                 detectionFlags.godmode = (detectionFlags.godmode or 0) + 1
                 if detectionFlags.godmode > 3 then
