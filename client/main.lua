@@ -38,6 +38,17 @@ CreateThread(function()
     protectorInitialized = true
     Logger.info("🛡️ FiveM Server Protector client initialized successfully")
     
+    -- Test NUI functionality
+    if Config.Protection.AntiCheat.NUIDevToolsDetection then
+        CreateThread(function()
+            Wait(2000) -- Wait a bit for NUI to load
+            SendNUIMessage({
+                type = "test_connection",
+                message = "Testing NUI communication"
+            })
+        end)
+    end
+    
     -- Send initialization confirmation to server
     TriggerServerEvent('protector:client:initialized', systemStatus)
 end)
@@ -206,11 +217,42 @@ exports('isProtectionEnabled', function(systemName)
     return systemStatus[systemName] or false
 end)
 
+-- NUI Callback handlers
+RegisterNUICallback('nui_test', function(data, cb)
+    if data.status == 'connected' then
+        Logger.info("✓ NUI connection test successful")
+        print(string.format("^2[Protector] NUI Test: %s^7", data.message))
+    end
+    cb('ok')
+end)
+
+-- Simple command to test NUI
+RegisterCommand('test_nui', function()
+    if Config.Protection.AntiCheat.NUIDevToolsDetection then
+        print("^3[Protector] Testing NUI connection...^7")
+        SendNUIMessage({
+            type = "test_connection",
+            message = "Manual NUI test command"
+        })
+    else
+        print("^1[Protector] NUI DevTools detection is disabled^7")
+    end
+end, false)
+
 -- Debug command (only in debug mode)
 if Config.Protection.Debug then
     RegisterCommand('protector_debug', function()
         local status = exports[GetCurrentResourceName()]:getProtectionStatus()
         print("=== FiveM Server Protector Debug ===")
         print(json.encode(status, {indent = true}))
+        
+        -- Test NUI if enabled
+        if Config.Protection.AntiCheat.NUIDevToolsDetection then
+            print("Testing NUI connection...")
+            SendNUIMessage({
+                type = "test_connection",
+                message = "Manual test from debug command"
+            })
+        end
     end, false)
 end

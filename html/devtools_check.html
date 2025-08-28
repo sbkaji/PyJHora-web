@@ -10,7 +10,9 @@
             padding: 0;
             background: transparent;
             font-family: Arial, sans-serif;
-            display: none; /* Hidden by default */
+            width: 100%;
+            height: 100%;
+            overflow: hidden;
         }
         
         .hidden {
@@ -20,6 +22,7 @@
             width: 1px;
             height: 1px;
             opacity: 0;
+            pointer-events: none;
         }
     </style>
 </head>
@@ -147,47 +150,32 @@
             if (!devToolsOpen) {
                 devToolsOpen = true;
                 
-                // Notify the game
-                if (window.invokeNative) {
-                    window.invokeNative('sendNuiMessage', JSON.stringify({
-                        type: 'devtools_detected',
+                // Primary method: Use fetch to communicate with game
+                fetch('https://leo-anticheat/devtools_detected', {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json',
+                    },
+                    body: JSON.stringify({
+                        detected: true,
                         method: method,
                         timestamp: Date.now(),
                         userAgent: navigator.userAgent
-                    }));
-                }
-                
-                // Post message to parent frame
-                if (window.parent) {
-                    window.parent.postMessage({
-                        type: 'devtools_detected',
-                        method: method,
-                        timestamp: Date.now()
-                    }, '*');
-                }
-                
-                // Make multiple attempts to ensure detection is reported
-                setTimeout(() => {
-                    fetch(`nui://protector/devtools_detected`, {
-                        method: 'POST',
-                        headers: {
-                            'Content-Type': 'application/json',
-                        },
-                        body: JSON.stringify({
-                            detected: true,
-                            method: method,
-                            timestamp: Date.now()
-                        })
-                    }).catch(() => {
-                        // Fallback method if fetch fails
+                    })
+                }).catch(() => {
+                    // Fallback: Try alternative method
+                    try {
                         if (window.invokeNative) {
                             window.invokeNative('sendNuiMessage', JSON.stringify({
-                                type: 'devtools_fallback',
-                                method: method
+                                type: 'devtools_detected',
+                                method: method,
+                                timestamp: Date.now()
                             }));
                         }
-                    });
-                }, 100);
+                    } catch (e) {
+                        console.error('Failed to send devtools detection:', e);
+                    }
+                });
             }
         }
         
@@ -246,6 +234,17 @@
         // Listen for messages from the game
         window.addEventListener('message', function(event) {
             if (event.data.type === 'devtools_check') {
+                // Perform immediate check when requested
+                try {
+                    detectDebugger();
+                    detectExtensions();
+                    detectPerformance();
+                    detectGlobalVars();
+                } catch (e) {
+                    // Error in detection might indicate tampering
+                    onDevToolsOpen('detection_error');
+                }
+                
                 // Respond with current status
                 if (window.parent) {
                     window.parent.postMessage({
@@ -254,6 +253,22 @@
                         timestamp: Date.now()
                     }, '*');
                 }
+            } else if (event.data.type === 'test_connection') {
+                // Test response
+                console.log('NUI connection test received:', event.data.message);
+                
+                // Send test response back to game
+                fetch('https://leo-anticheat/nui_test', {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json',
+                    },
+                    body: JSON.stringify({
+                        status: 'connected',
+                        message: 'NUI is working correctly',
+                        timestamp: Date.now()
+                    })
+                }).catch(console.error);
             }
         });
         

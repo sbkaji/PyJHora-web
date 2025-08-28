@@ -270,6 +270,10 @@ end
 -- Anti NUI DevTools Detection
 local function detectNUIDevTools()
     CreateThread(function()
+        -- Enable NUI focus for detection
+        SetNuiFocus(false, false)
+        SetNuiFocusKeepInput(false)
+        
         while true do
             Wait(1500)
             
@@ -281,7 +285,8 @@ local function detectNUIDevTools()
             -- Send NUI message to check for devtools
             SendNUIMessage({
                 type = "devtools_check",
-                timestamp = GetGameTimer()
+                timestamp = GetGameTimer(),
+                resourceName = GetCurrentResourceName()
             })
             
             ::continue::
@@ -292,6 +297,11 @@ end
 -- NUI Callback for devtools detection
 RegisterNUICallback('devtools_detected', function(data, cb)
     if data.detected then
+        Logger.logDetection(GetPlayerName(PlayerId()), GetPlayerServerId(PlayerId()), "NUI DevTools Detection", {
+            method = data.method or 'unknown',
+            userAgent = data.userAgent,
+            timestamp = data.timestamp
+        })
         TriggerServerEvent('protector:detection:cheat', 'nui_devtools', data.method or 'unknown')
     end
     cb('ok')
