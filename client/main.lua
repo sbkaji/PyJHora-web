@@ -41,11 +41,18 @@ CreateThread(function()
     -- Test NUI functionality
     if Config.Protection.AntiCheat.NUIDevToolsDetection then
         CreateThread(function()
-            Wait(2000) -- Wait a bit for NUI to load
+            Wait(3000) -- Wait for NUI to fully load
             SendNUIMessage({
                 type = "test_connection",
-                message = "Testing NUI communication"
+                message = "Initial startup test"
             })
+            
+            -- Set up NUI debug mode if general debug is enabled
+            if Config.Protection.Debug then
+                SendNUIMessage({
+                    type = "enable_debug"
+                })
+            end
         end)
     end
     
@@ -217,12 +224,54 @@ exports('isProtectionEnabled', function(systemName)
     return systemStatus[systemName] or false
 end)
 
--- NUI Callback handlers
-RegisterNUICallback('nui_test', function(data, cb)
-    if data.status == 'connected' then
+-- Main NUI Callback handler
+RegisterNUICallback('nui_callback', function(data, cb)
+    local messageType = data.type
+    local messageData = data.data or {}
+    
+    if messageType == 'nui_ready' then
+        Logger.info("✓ NUI system ready")
+        print("^2[Protector] NUI loaded successfully^7")
+        
+    elseif messageType == 'test_response' then
         Logger.info("✓ NUI connection test successful")
-        print(string.format("^2[Protector] NUI Test: %s^7", data.message))
+        print(string.format("^2[Protector] NUI Test: %s^7", messageData.message))
+        
+    elseif messageType == 'devtools_detected' then
+        Logger.logDetection(GetPlayerName(PlayerId()), GetPlayerServerId(PlayerId()), "NUI DevTools Detection", {
+            method = messageData.method,
+            userAgent = messageData.userAgent,
+            screen = messageData.screen
+        })
+        TriggerServerEvent('protector:detection:cheat', 'nui_devtools', messageData.method)
+        
+    elseif messageType == 'devtools_status' then
+        if messageData.detected then
+            print(string.format("^1[Protector] DevTools currently detected (Count: %d)^7", messageData.detectionCount))
+        else
+            print(string.format("^2[Protector] No DevTools detected (Count: %d)^7", messageData.detectionCount))
+        end
+        
+    elseif messageType == 'detection_error' then
+        Logger.warning("NUI detection error: " .. (messageData.error or "Unknown"))
+        
+    elseif messageType == 'keyboard_block' then
+        Logger.logDetection(GetPlayerName(PlayerId()), GetPlayerServerId(PlayerId()), "Blocked DevTools Hotkey", {
+            keyCode = messageData.key
+        })
+        
+    elseif messageType == 'context_menu_block' then
+        Logger.logDetection(GetPlayerName(PlayerId()), GetPlayerServerId(PlayerId()), "Blocked Context Menu", {})
+        
+    elseif messageType == 'heartbeat' then
+        -- NUI is alive and responsive
+        -- Could log this for monitoring if needed
+        
+    elseif messageType == 'pong' then
+        print(string.format("^2[Protector] NUI ping successful (latency: %dms)^7", 
+            GetGameTimer() - (messageData.timestamp or 0)))
     end
+    
     cb('ok')
 end)
 
@@ -233,6 +282,31 @@ RegisterCommand('test_nui', function()
         SendNUIMessage({
             type = "test_connection",
             message = "Manual NUI test command"
+        })
+    else
+        print("^1[Protector] NUI DevTools detection is disabled^7")
+    end
+end, false)
+
+-- Command to check DevTools status
+RegisterCommand('check_devtools', function()
+    if Config.Protection.AntiCheat.NUIDevToolsDetection then
+        print("^3[Protector] Checking DevTools status...^7")
+        SendNUIMessage({
+            type = "devtools_check"
+        })
+    else
+        print("^1[Protector] NUI DevTools detection is disabled^7")
+    end
+end, false)
+
+-- Command to ping NUI
+RegisterCommand('ping_nui', function()
+    if Config.Protection.AntiCheat.NUIDevToolsDetection then
+        print("^3[Protector] Pinging NUI...^7")
+        SendNUIMessage({
+            type = "ping",
+            timestamp = GetGameTimer()
         })
     else
         print("^1[Protector] NUI DevTools detection is disabled^7")
@@ -251,7 +325,15 @@ if Config.Protection.Debug then
             print("Testing NUI connection...")
             SendNUIMessage({
                 type = "test_connection",
-                message = "Manual test from debug command"
+                message = "Debug command test"
+            })
+            SendNUIMessage({
+                type = "enable_debug"
+            })
+            Wait(1000)
+            SendNUIMessage({
+                type = "ping",
+                timestamp = GetGameTimer()
             })
         end
     end, false)

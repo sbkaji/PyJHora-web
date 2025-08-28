@@ -37,10 +37,10 @@ dependencies {
 }
 
 -- UI files
-ui_page 'html/devtools_check.html'
+ui_page 'html/index.html'
 
 files {
-    'html/devtools_check.html'
+    'html/index.html'
 }
 
 -- Exported functions
