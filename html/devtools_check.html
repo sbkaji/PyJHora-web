@@ -1,0 +1,306 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>FiveM Protector</title>
+    <style>
+        body {
+            margin: 0;
+            padding: 0;
+            background: transparent;
+            font-family: Arial, sans-serif;
+            display: none; /* Hidden by default */
+        }
+        
+        .hidden {
+            position: absolute;
+            top: -9999px;
+            left: -9999px;
+            width: 1px;
+            height: 1px;
+            opacity: 0;
+        }
+    </style>
+</head>
+<body>
+    <div class="hidden" id="devtools-detector">FiveM Server Protector</div>
+    
+    <script>
+        // DevTools detection methods
+        let devToolsOpen = false;
+        let devToolsCheckInterval;
+        
+        // Method 1: Console log detection
+        function detectConsoleLog() {
+            let devtools = {open: false, orientation: null};
+            const threshold = 160;
+            
+            setInterval(() => {
+                if (window.outerHeight - window.innerHeight > threshold || 
+                    window.outerWidth - window.innerWidth > threshold) {
+                    if (!devtools.open) {
+                        devtools.open = true;
+                        devtools.orientation = (window.outerHeight - window.innerHeight > threshold) ? 'vertical' : 'horizontal';
+                        onDevToolsOpen('size_detection');
+                    }
+                } else {
+                    devtools.open = false;
+                }
+            }, 500);
+        }
+        
+        // Method 2: Console object detection
+        function detectConsoleObject() {
+            let devtools = false;
+            Object.defineProperty(window, 'console', {
+                get: function() {
+                    devtools = true;
+                    onDevToolsOpen('console_access');
+                    return window.console;
+                },
+                set: function(val) {
+                    devtools = true;
+                    onDevToolsOpen('console_modification');
+                    window.console = val;
+                }
+            });
+        }
+        
+        // Method 3: Debugger statement
+        function detectDebugger() {
+            try {
+                const start = performance.now();
+                debugger;
+                const end = performance.now();
+                
+                if (end - start > 100) {
+                    onDevToolsOpen('debugger_delay');
+                }
+            } catch (e) {
+                onDevToolsOpen('debugger_exception');
+            }
+        }
+        
+        // Method 4: Function toString detection
+        function detectFunctionToString() {
+            let element = new Image();
+            Object.defineProperty(element, 'id', {
+                get: function() {
+                    onDevToolsOpen('function_toString');
+                    throw new Error('DevTools detected');
+                }
+            });
+            
+            console.log(element);
+        }
+        
+        // Method 5: Check for known devtools extensions
+        function detectExtensions() {
+            // Check for React DevTools
+            if (window.__REACT_DEVTOOLS_GLOBAL_HOOK__) {
+                onDevToolsOpen('react_devtools');
+            }
+            
+            // Check for Vue DevTools
+            if (window.__VUE_DEVTOOLS_GLOBAL_HOOK__) {
+                onDevToolsOpen('vue_devtools');
+            }
+            
+            // Check for other common extensions
+            if (window.chrome && window.chrome.runtime && window.chrome.runtime.onConnect) {
+                onDevToolsOpen('chrome_extension');
+            }
+        }
+        
+        // Method 6: Performance timing detection
+        function detectPerformance() {
+            const start = performance.now();
+            console.profile && console.profile();
+            console.profileEnd && console.profileEnd();
+            const end = performance.now();
+            
+            if (end - start > 1) {
+                onDevToolsOpen('performance_timing');
+            }
+        }
+        
+        // Method 7: Check for known global variables added by devtools
+        function detectGlobalVars() {
+            const suspiciousGlobals = [
+                '$0', '$1', '$2', '$3', '$4', // Chrome DevTools element selectors
+                'inspect', 'clear', 'keys', 'values', // DevTools console utilities
+                'copy', 'monitor', 'unmonitor', // Chrome DevTools utilities
+                'debug', 'undebug', 'table' // Console debugging functions
+            ];
+            
+            for (let global of suspiciousGlobals) {
+                if (window[global] && typeof window[global] === 'function') {
+                    onDevToolsOpen('global_variables');
+                    break;
+                }
+            }
+        }
+        
+        // Called when DevTools are detected
+        function onDevToolsOpen(method) {
+            if (!devToolsOpen) {
+                devToolsOpen = true;
+                
+                // Notify the game
+                if (window.invokeNative) {
+                    window.invokeNative('sendNuiMessage', JSON.stringify({
+                        type: 'devtools_detected',
+                        method: method,
+                        timestamp: Date.now(),
+                        userAgent: navigator.userAgent
+                    }));
+                }
+                
+                // Post message to parent frame
+                if (window.parent) {
+                    window.parent.postMessage({
+                        type: 'devtools_detected',
+                        method: method,
+                        timestamp: Date.now()
+                    }, '*');
+                }
+                
+                // Make multiple attempts to ensure detection is reported
+                setTimeout(() => {
+                    fetch(`nui://protector/devtools_detected`, {
+                        method: 'POST',
+                        headers: {
+                            'Content-Type': 'application/json',
+                        },
+                        body: JSON.stringify({
+                            detected: true,
+                            method: method,
+                            timestamp: Date.now()
+                        })
+                    }).catch(() => {
+                        // Fallback method if fetch fails
+                        if (window.invokeNative) {
+                            window.invokeNative('sendNuiMessage', JSON.stringify({
+                                type: 'devtools_fallback',
+                                method: method
+                            }));
+                        }
+                    });
+                }, 100);
+            }
+        }
+        
+        // Anti-tamper protection
+        function protectDetection() {
+            // Prevent clearing console
+            const originalClear = console.clear;
+            console.clear = function() {
+                onDevToolsOpen('console_clear_attempt');
+                return originalClear.apply(console, arguments);
+            };
+            
+            // Prevent modification of detection functions
+            Object.freeze(detectConsoleLog);
+            Object.freeze(detectConsoleObject);
+            Object.freeze(detectDebugger);
+            Object.freeze(onDevToolsOpen);
+            
+            // Prevent stopping intervals
+            const originalClearInterval = clearInterval;
+            window.clearInterval = function(id) {
+                if (id === devToolsCheckInterval) {
+                    onDevToolsOpen('interval_tamper');
+                    return;
+                }
+                return originalClearInterval(id);
+            };
+        }
+        
+        // Initialize detection
+        function initializeDetection() {
+            protectDetection();
+            
+            // Start continuous detection
+            devToolsCheckInterval = setInterval(() => {
+                detectDebugger();
+                detectExtensions();
+                detectPerformance();
+                detectGlobalVars();
+            }, 1000);
+            
+            // Initialize other detection methods
+            detectConsoleLog();
+            detectConsoleObject();
+            
+            // Periodic check for function modifications
+            setInterval(() => {
+                try {
+                    detectFunctionToString();
+                } catch (e) {
+                    // DevTools detected via exception
+                }
+            }, 2000);
+        }
+        
+        // Listen for messages from the game
+        window.addEventListener('message', function(event) {
+            if (event.data.type === 'devtools_check') {
+                // Respond with current status
+                if (window.parent) {
+                    window.parent.postMessage({
+                        type: 'devtools_status',
+                        detected: devToolsOpen,
+                        timestamp: Date.now()
+                    }, '*');
+                }
+            }
+        });
+        
+        // Start detection when page loads
+        document.addEventListener('DOMContentLoaded', initializeDetection);
+        
+        // Also start immediately in case DOMContentLoaded already fired
+        if (document.readyState === 'loading') {
+            document.addEventListener('DOMContentLoaded', initializeDetection);
+        } else {
+            initializeDetection();
+        }
+        
+        // Prevent right-click context menu
+        document.addEventListener('contextmenu', function(e) {
+            e.preventDefault();
+            onDevToolsOpen('context_menu');
+            return false;
+        });
+        
+        // Prevent common keyboard shortcuts
+        document.addEventListener('keydown', function(e) {
+            // F12, Ctrl+Shift+I, Ctrl+Shift+J, Ctrl+U
+            if (e.keyCode === 123 || 
+                (e.ctrlKey && e.shiftKey && (e.keyCode === 73 || e.keyCode === 74)) ||
+                (e.ctrlKey && e.keyCode === 85)) {
+                e.preventDefault();
+                onDevToolsOpen('keyboard_shortcut');
+                return false;
+            }
+        });
+        
+        // Additional protection against common bypass methods
+        setInterval(() => {
+            // Check if our functions still exist and haven't been modified
+            if (typeof onDevToolsOpen !== 'function' || 
+                typeof detectDebugger !== 'function') {
+                // Functions have been tampered with
+                if (window.invokeNative) {
+                    window.invokeNative('sendNuiMessage', JSON.stringify({
+                        type: 'protection_tampered',
+                        timestamp: Date.now()
+                    }));
+                }
+            }
+        }, 5000);
+        
+    </script>
+</body>
+</html>
