@@ -22,7 +22,17 @@ function Logger.log(level, message, data)
     local currentLevel = logLevels[Config.Logging.LogLevel] or 2
     if logLevels[level] < currentLevel then return end
     
-    local timestamp = os.date("%Y-%m-%d %H:%M:%S")
+    -- Use different timestamp methods for client vs server
+    local timestamp
+    if IsDuplicityVersion() then
+        -- Server side - os is available
+        timestamp = os.date("%Y-%m-%d %H:%M:%S")
+    else
+        -- Client side - use GetGameTimer as fallback
+        local gameTime = GetGameTimer()
+        timestamp = string.format("T+%d", math.floor(gameTime / 1000))
+    end
+    
     local color = logColors[level] or "^7"
     local formattedMessage = string.format("[%s] [%s%s^7] %s", timestamp, color, level, message)
     
@@ -76,6 +86,15 @@ function Logger.logDetection(playerName, playerId, detectionType, details)
             details = details,
             timestamp = os.time()
         })
+    else
+        -- Client side - send to server for webhook
+        TriggerServerEvent('protector:client:detection', {
+            type = 'detection',
+            player = playerName,
+            playerId = playerId,
+            detection = detectionType,
+            details = details
+        })
     end
 end
 
@@ -84,7 +103,7 @@ function Logger.logBan(playerName, playerId, reason, duration)
         playerName, playerId, reason, duration)
     Logger.critical(message)
     
-    -- Trigger webhook if enabled
+    -- Trigger webhook if enabled (server side only)
     if IsDuplicityVersion() then
         TriggerEvent('protector:webhook:send', {
             type = 'ban_action',
@@ -102,7 +121,7 @@ function Logger.logExploit(playerName, playerId, exploitType, severity)
         playerName, playerId, exploitType, severity)
     Logger.error(message)
     
-    -- Trigger webhook if enabled
+    -- Trigger webhook if enabled (server side only)
     if IsDuplicityVersion() then
         TriggerEvent('protector:webhook:send', {
             type = 'exploit_attempt',

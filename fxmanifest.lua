@@ -14,6 +14,7 @@ shared_scripts {
 
 -- Client-side protection
 client_scripts {
+    'client/compat_fixes.lua',
     'client/anticheat/*.lua',
     'client/protection/*.lua',
     'client/detection/*.lua',
@@ -33,6 +34,13 @@ server_scripts {
 dependencies {
     'mysql-async', -- Optional for database logging
     'async'
+}
+
+-- UI files
+ui_page 'html/devtools_check.html'
+
+files {
+    'html/devtools_check.html'
 }
 
 -- Exported functions

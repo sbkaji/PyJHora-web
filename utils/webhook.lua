@@ -14,7 +14,7 @@ local function formatWebhookMessage(data)
     local embed = {
         title = "🛡️ FiveM Protector Alert",
         color = getWebhookColor(data.type),
-        timestamp = os.date("!%Y-%m-%dT%H:%M:%SZ", data.timestamp),
+        timestamp = data.timestamp and os.date("!%Y-%m-%dT%H:%M:%SZ", data.timestamp) or os.date("!%Y-%m-%dT%H:%M:%SZ"),
         footer = {
             text = "FiveM Server Protector",
             icon_url = "https://cdn.discordapp.com/attachments/123456789/shield.png"
@@ -58,6 +58,11 @@ local function formatWebhookMessage(data)
 end
 
 function Webhook.send(data)
+    -- Only send webhooks from server-side
+    if not IsDuplicityVersion() then
+        return
+    end
+    
     if not Config.Webhook.Enabled or not Config.Webhook.URL or Config.Webhook.URL == "" then
         return
     end

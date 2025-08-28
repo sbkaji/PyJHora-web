@@ -44,16 +44,19 @@ local function detectGodmode()
             
             local playerPed = PlayerPedId()
             local currentHealth = GetEntityHealth(playerPed)
-            local isInvincible = GetPlayerInvincible(PlayerId())
-            local entityInvincible = IsEntityInvincible(playerPed)
+            local isInvincible = false
+            
+            -- Safe call to GetPlayerInvincible
+            if GetPlayerInvincible then
+                isInvincible = GetPlayerInvincible(PlayerId())
+            end
             
             -- Check for invincibility flags
-            if isInvincible or entityInvincible then
+            if isInvincible then
                 protectionFlags.godmode = (protectionFlags.godmode or 0) + 1
                 if protectionFlags.godmode > 3 then
                     Logger.logDetection(GetPlayerName(PlayerId()), GetPlayerServerId(PlayerId()), "Godmode Detection", {
                         isInvincible = isInvincible,
-                        entityInvincible = entityInvincible,
                         health = currentHealth
                     })
                     TriggerServerEvent('protector:detection:player', 'godmode', {type = 'invincible_flag'})
@@ -381,9 +384,14 @@ local function detectSpectator()
                 goto continue
             end
             
-            local isSpectating = NetworkIsInSpectatorMode()
             local playerPed = PlayerPedId()
             local isPlayerDead = IsPlayerDead(PlayerId())
+            local isSpectating = false
+            
+            -- Safe call to NetworkIsInSpectatorMode
+            if NetworkIsInSpectatorMode then
+                isSpectating = NetworkIsInSpectatorMode()
+            end
             
             if isSpectating and not isPlayerDead then
                 protectionFlags.spectator = (protectionFlags.spectator or 0) + 1
@@ -415,15 +423,26 @@ local function detectVisionHacks()
                 goto continue
             end
             
-            local hasNightVision = GetUsingnightvision()
-            local hasThermalVision = GetUsingseethrough()
+            local hasNightVision = false
+            local hasThermalVision = false
+            
+            -- Safe calls to vision functions
+            if GetUsingnightvision then
+                hasNightVision = GetUsingnightvision()
+            end
+            
+            if GetUsingseethrough then
+                hasThermalVision = GetUsingseethrough()
+            end
             
             if Config.Protection.PlayerProtection.AntiNightVision and hasNightVision then
                 Logger.logDetection(GetPlayerName(PlayerId()), GetPlayerServerId(PlayerId()), "Night Vision Detection", {
                     hasNightVision = hasNightVision
                 })
                 TriggerServerEvent('protector:detection:player', 'night_vision', {})
-                SetNightvision(false)
+                if SetNightvision then
+                    SetNightvision(false)
+                end
             end
             
             if Config.Protection.PlayerProtection.AntiThermalVision and hasThermalVision then
@@ -431,7 +450,9 @@ local function detectVisionHacks()
                     hasThermalVision = hasThermalVision
                 })
                 TriggerServerEvent('protector:detection:player', 'thermal_vision', {})
-                SetSeethrough(false)
+                if SetSeethrough then
+                    SetSeethrough(false)
+                end
             end
             
             ::continue::

@@ -161,11 +161,19 @@ local function detectGlobalCheats()
             local coords = GetEntityCoords(playerPed)
             
             -- Detect unusual game state changes
-            if IsEntityInvincible(playerPed) and not IsPlayerInvincible(PlayerId()) then
+            local isInvincible = false
+            if GetPlayerInvincible then
+                isInvincible = GetPlayerInvincible(PlayerId())
+            end
+            
+            if isInvincible then
                 detectionFlags.godmode = (detectionFlags.godmode or 0) + 1
                 if detectionFlags.godmode > 3 then
                     TriggerServerEvent('protector:detection:cheat', 'godmode_bypass', 'global_menu')
+                    detectionFlags.godmode = 0
                 end
+            else
+                detectionFlags.godmode = math.max(0, (detectionFlags.godmode or 0) - 1)
             end
             
             -- Detect impossible movement speeds

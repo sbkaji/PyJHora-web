@@ -167,6 +167,18 @@ AddEventHandler('protector:detection:cheat', function(cheatType, details)
     TriggerEvent('protector:detection:cheat', cheatType, details)
 end)
 
+-- Handle client-side detections for webhook forwarding
+RegisterNetEvent('protector:client:detection')
+AddEventHandler('protector:client:detection', function(detectionData)
+    local source = source
+    
+    -- Add server timestamp
+    detectionData.timestamp = os.time()
+    
+    -- Send webhook
+    TriggerEvent('protector:webhook:send', detectionData)
+end)
+
 RegisterNetEvent('protector:detection:player')
 AddEventHandler('protector:detection:player', function(detectionType, details)
     local source = source
